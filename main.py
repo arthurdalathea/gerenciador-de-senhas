@@ -3,42 +3,69 @@ from random import *
 from hashlib import *
 from time import *
 from sys import *
+from os import *
 
 senhaM = "12345"
 tentativas = 0
 senhas = {}
 
-print("=======Gerenciador de Senhas========")
+def limpar_buffer_teclado():
+    """Limpa a fila de teclas digitadas, funcionando em Windows, Linux e Mac."""
+    import os
+
+    if os.name == 'nt':  # Se for Windows
+        import msvcrt
+        while msvcrt.kbhit(): # comandos para limpar os dados de entrada do terminal
+            msvcrt.getch()  
+    else:  # Se for Linux ou Mac (Unix)
+        import termios
+        termios.tcflush(sys.stdin, termios.TCIFLUSH) # comando para limpar os dados de entrada do terminal
+
+print("======= Gerenciador de Senhas ========")
 senhaMestra = input("Digite sua senha mestra: ")
 tentativas += 1
+
 while senhaMestra != senhaM:
-    print("Acesso negado.")
-    print()
-    senhaMestra = input("Digite a senha correta : ")
-    tentativas += 1
-    if tentativas %5 == 0:
-        print(f"Acesso bloqueado por {tentativas*6} segundos")
-        for i in range(tentativas*6-1, 0, -1):
+
+    if tentativas % 5 == 0:
+        print()
+        print(f"ACESSO BLOQUEADO POR {tentativas*6} SEGUNDOS!")
+        for i in range(tentativas*6-1, -1, -1):
             sleep(1)
-            print(f"Restam {i} segundos")
-    else:
-        pass
-print("\nAcesso Liberado\n")
+            if i == 0:
+                print(f"\rRestam {i} segundos...      ")  # Não retirem esses espaços, faz parte do print
+                print()
+            else:
+                print(f"\rRestam {i} segundos...      ", end="", flush=True) # Aqui também não retirem os espaços
+    else: 
+        print("ACESSO NEGADO!")
+        print()
+
+    limpar_buffer_teclado()
+
+    senhaMestra = input("Digite a senha correta: ")
+    tentativas += 1
+    
+print("\nACESSO LIBERADO!\n")
+
 while True:
-    print("Ações:")
-    print("1-Cadastrar nova senha")
-    print("2-Listar senhas")
-    print("3-Excluir senha")
-    print("4-Alterar senha")
-    print("5-Sair")
+    print("="*30)
+    print("      PAINEL DE AÇÕES")
+    print("="*30)
+    print(" 1 - Cadastrar nova senha")
+    print(" 2 - Listar senhas")
+    print(" 3 - Excluir senha")
+    print(" 4 - Alterar senha")
+    print(" 5 - Sair")
+    print("="*30)
     while True:
         try:
-            ação = int(input("Digite qual ação deseja: "))
+            ação = int(input("Digite qual ação deseja (1-5): "))
             while ação > 5 or ação < 1:
-                ação = int(input("Digite uma ação válida"))
+                ação = int(input("Digite uma ação válida (1-5): "))
             break
         except ValueError:
-            print("Digite um número no formato correto")
+            print("Digite um número no formato correto (1-5): ")
     match ação:
         case 1:
             app = input("Diga qual aplicativo pertence a senha: ")
