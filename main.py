@@ -57,6 +57,7 @@ while True:
     print(" 4 - Alterar senha")
     print(" 5 - Sair")
     print("="*30)
+    # Estrutura que impede a entrada de uma ação inválida ou de formato errado
     while True:
         try:
             ação = int(input("Digite qual ação deseja (1-5): "))
@@ -68,7 +69,7 @@ while True:
     # Estrutura de decisão match, equivalente ao switch em Java
     match ação:
         case 1:
-            app = input("Diga qual aplicativo pertence a senha: ")
+            app = input("Diga qual aplicativo pertence a senha: ").lower() # Função lower() : transforma todos os caracteres de uma String em minúsculo
             usuario = input("Digite qual o nome do usuario: ") 
             senha = input(f"Digite sua senha do {app}: ")
             if app not in senhas:
@@ -78,7 +79,6 @@ while True:
                 senhas[app][usuario] = senha
             print("Senha cadatrada com sucesso")
         case 2:
-            indice = 1
             if not senhas:
                 print("Nenhuma senha cadastrada.\n")
             else:
@@ -88,23 +88,33 @@ while True:
                         print(f"Usuario : {usuario}")
                         print(f"Senha : {Senhas}\n")
         case 3:
+            # Validação se dicionário Senhas não está Vazio
             if not senhas:
                 print("Nenhuma senha cadastrada então não há senhas para excluir\n")
             else:
-                app = input("Digite de qual aplicativo você deseja deletar sua senha: ")
+                app = input("Digite de qual aplicativo você deseja deletar sua senha: ").lower()
                 while app not in senhas:
-                    app = input("Digite um aplicativo presente : ")
+                    app = input("Digite um aplicativo presente : ").lower()
                 usuario = input("Digite o nome do usuário: ")
                 while usuario not in senhas[app]:
                     usuario = input(f"Digite um usuario presente em {app} : ")
                 del senhas[app][usuario]
                 print("Senha excluída com sucesso.")
         case 4:
-            app = input("Digite de qual aplicativo é a sneha que deseja deletar: ")
-            usuario = input("Digite o usuário: ")
-            senhaNova = input("Digite a nova senha : ")
-            while senhaNova == senhas[app][usuario]:
-                senhaNova = input("Digite a nova senha diferente da anterior : ")
-            senhas[app][usuario] = senhaNova
+            # Validação se o dicionário Senhas não está Vazio
+            if not senhas:
+                print("Nenhuma senha está cadastrada no momento.")
+            else:
+                app = input("Digite de qual aplicativo é a senha que deseja deletar: ").lower()
+                while app not in senhas:
+                    app = input("Digite um aplicativo válido: ").lower()
+                usuario = input("Digite o usuário: ")
+                while usuario not in senhas[app]:
+                    usuario = input("Digite um usuário válido: ")
+                senhaNova = input(f"Digite a nova senha : ")
+                while senhaNova == senhas[app][usuario]:
+                    senhaNova = input("Digite a nova senha diferente da anterior : ")
+                senhas[app][usuario] = senhaNova
+                print("Senha alterada com sucesso\n")            
         case 5:
             break
