@@ -65,6 +65,7 @@ while True:
             break
         except ValueError:
             print("Digite um número no formato correto (1-5): ")
+    # Estrutura de decisão match, equivalente ao switch em Java
     match ação:
         case 1:
             app = input("Diga qual aplicativo pertence a senha: ")
