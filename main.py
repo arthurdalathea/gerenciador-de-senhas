@@ -2,7 +2,6 @@
 from random import *
 from hashlib import *
 from time import *
-from sys import *
 from os import *
 
 senhaM = "12345"
