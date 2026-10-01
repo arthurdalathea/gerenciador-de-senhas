@@ -1,9 +1,11 @@
 # Versão apenas para testes
-from random import *
-from hashlib import *
-from time import *
-from os import *
-
+import secrets
+import hashlib
+import time
+import os
+import json
+import hmac
+import sys
 senhaM = "12345"
 tentativas = 0
 senhas = {}
@@ -30,7 +32,7 @@ while senhaMestra != senhaM:
         print()
         print(f"ACESSO BLOQUEADO POR {tentativas*6} SEGUNDOS!")
         for i in range(tentativas*6-1, -1, -1):
-            sleep(1)
+            time.sleep(1)
             if i == 0:
                 print(f"\rRestam {i} segundos...      ")  # Não retirem esses espaços, faz parte do print
                 print()
