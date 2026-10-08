@@ -6,10 +6,9 @@ import os
 import json
 import hmac
 import sys
+
 senhaM = "12345"
 tentativas = 0
-senhas = {}
-
 def limpar_buffer_teclado():
     """Limpa a fila de teclas digitadas, funcionando em Windows, Linux e Mac."""
     import os
@@ -46,7 +45,6 @@ while senhaMestra != senhaM:
 
     senhaMestra = input("Digite a senha correta: ")
     tentativas += 1
-    
 print("\nACESSO LIBERADO!\n")
 
 while True:
@@ -74,16 +72,24 @@ while True:
             app = input("Diga qual aplicativo pertence a senha: ").lower() # Função lower() : transforma todos os caracteres de uma String em minúsculo
             usuario = input("Digite qual o nome do usuario: ") 
             senha = input(f"Digite sua senha do {app}: ")
+            with open("Dados.json", "r", encoding="utf-8") as arquivo:
+                senhas = json.load(arquivo)
             if app not in senhas:
                 senhas[app] = {}
                 senhas[app][usuario] = senha
             else:
                 senhas[app][usuario] = senha
+            with open("Dados.json", "w", encoding="utf-8") as arquivo:
+                json.dump(senhas, arquivo, indent=4, ensure_ascii= False)
             print("Senha cadatrada com sucesso")
         case 2:
+            with open("Dados.json", "r", encoding="utf-8") as arquivo:
+                senhas = json.load(arquivo)
             if not senhas:
                 print("Nenhuma senha cadastrada.\n")
             else:
+                with open("Dados.json", "r", encoding="utf-8") as arquivo:
+                    senhas = json.load(arquivo)
                 for app, usuarios in senhas.items():
                     print(f"Senhas {app} :")
                     for usuario, Senhas in usuarios.items():
@@ -91,6 +97,8 @@ while True:
                         print(f"Senha : {Senhas}\n")
         case 3:
             # Validação se dicionário Senhas não está Vazio
+            with open("Dados.json", "r", encoding="utf-8") as arquivo:
+                senhas = json.load(arquivo)
             if not senhas:
                 print("Nenhuma senha cadastrada então não há senhas para excluir\n")
             else:
@@ -100,14 +108,22 @@ while True:
                 usuario = input("Digite o nome do usuário: ")
                 while usuario not in senhas[app]:
                     usuario = input(f"Digite um usuario presente em {app} : ")
-                del senhas[app][usuario]
-                print("Senha excluída com sucesso.")
+                escolha = input("Você realmente quer apagar a senha: s/n").lower()
+                if escolha != "s":
+                    print("Senha não foi deletada.\n")
+                else:
+                    del senhas[app][usuario]
+                    print("Senha excluída com sucesso.")
+            with open("Dados.json", "w", encoding="utf-8") as arquivo:
+                json.dump(senhas, arquivo, indent=4, ensure_ascii=False)
         case 4:
             # Validação se o dicionário Senhas não está Vazio
+            with open("Dados.json", "r", encoding="utf-8") as arquivo:
+                senhas = json.load(arquivo)
             if not senhas:
                 print("Nenhuma senha está cadastrada no momento.")
             else:
-                app = input("Digite de qual aplicativo é a senha que deseja deletar: ").lower()
+                app = input("Digite de qual aplicativo é a senha que deseja alterar: ").lower()
                 while app not in senhas:
                     app = input("Digite um aplicativo válido: ").lower()
                 usuario = input("Digite o usuário: ")
@@ -117,6 +133,9 @@ while True:
                 while senhaNova == senhas[app][usuario]:
                     senhaNova = input("Digite a nova senha diferente da anterior : ")
                 senhas[app][usuario] = senhaNova
-                print("Senha alterada com sucesso\n")            
+                print("Senha alterada com sucesso\n")    
+            with open("Dados.json", "w", encoding="utf-8") as arquivo:
+                json.dump(senhas, arquivo, indent=4, ensure_ascii=False)        
         case 5:
+            print("Programa encerrado.")
             break
