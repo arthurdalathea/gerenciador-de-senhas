@@ -47,6 +47,20 @@ if pastaExiste and arquivoExiste:
 else:
     senhaMestra = input("Defina a sua Senha Mestra (Essa senha será utilizada para entrar no gerenciador, ESCOLHA COM CUIDADO): ")
 
+    # /// Geração dos 2 salts utilizando a biblioteca secrets, pode alterar o tamanho se for necessário
+    saltCofre = secrets.token_bytes(16) # vai gerar 2^n bits hexadecimais
+    saltHashAutenticação = secrets.token_bytes(16)
+
+    senhaMestra = senhaMestra.encode()
+    saltCofre = saltCofre
+
+
+    # Utlizando do algoritmo de kdf scrypt para gerar a chave do cofre 
+    chaveCofre = hashlib.scrypt(password=senhaMestra, salt=saltCofre, n=16384, r=8, p=1,dklen=32)
+    hashAutenticação = hashlib.scrypt(password=chaveCofre, salt=saltHashAutenticação, n=16384, r=8,p=1,dklen=32 )
+    os.makedirs("sistema")
+    print(os.path.abspath("sistema"))
+
 
     
 
