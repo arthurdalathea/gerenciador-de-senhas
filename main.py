@@ -1,4 +1,3 @@
-# Versão apenas para testes
 import secrets
 import hashlib
 import time
@@ -7,23 +6,18 @@ import json
 import hmac
 import sys
 
-# Aqui embaixo ficará todas as funções do programa
-
-def avisoTela ():
+""" FUNÇÕES DO PROGRAMA """
+def aviso_tela ():
     limpar_buffer_teclado()
     print("=" * 70)
-    print("⚠️  ATENÇÃO: Não altere os arquivos da pasta 'sistema/'.")
-    print("Caso qualquer modificação externa seja detectada no 'dados.json'")
-    print("pelo 'hmac.txt', o cofre será bloqueado e o cofre será deletado")
-    print("permanentemente por segurança!")
+    print("⚠️  ATENÇÃO: Não altere ou delete a pasta cofre, onde suas senhas serão\n" \
+    "armazenadas. Caso qualquer modificação externa seja detectada, o cofre\n" \
+    "será bloqueado e deletado permanentemente por segurança!")
     print("=" * 70)
-    entrada = input("\nPressione ENTER para continuar...")
+    input("\nPressione ENTER para continuar...\n")
     
-
 def limpar_buffer_teclado():
-    """Limpa os inputs digitados pelo usário, funcionando em Windows, Linux e Mac."""
-    import os
-
+    """Limpa os inputs digitados pelo usuário, funcionando em Windows, Linux e Mac."""
     if os.name == 'nt':  # Se for Windows
         import msvcrt
         while msvcrt.kbhit(): # comandos para limpar os dados de entrada do terminal
@@ -32,47 +26,100 @@ def limpar_buffer_teclado():
         import termios
         termios.tcflush(sys.stdin, termios.TCIFLUSH) # comando para limpar os dados de entrada do terminal
 
+def ler_json(caminho):
+    # Abre o arquivo como leitor
+    with open(caminho, "r", encoding="utf-8") as arq:
+        conteudo = arq.read()
+        # Condição para verificar se o arquivo está vazio
+        if not conteudo.strip():
+            return {}
+        # Retorna o JSON en forma de dicionário
+        return json.loads(conteudo)
+
+def escrever_json(caminho, objeto):
+    # Abre o arquivo com permissão de escrita
+    with open(caminho, "w", encoding="utf-8") as arq:
+        # Escreve o objeto no JSON
+        json.dump(objeto, arq, indent=4)
+
+
+""" VARIÁVEIS CONSTANTES """
+CAMINHO_DADOS_JSON = os.path.join("cofre", "dados.json")
+CAMINHO_TIMER_JSON = os.path.join("cofre", "timer.json")
+
 
 """ PROGRAMA """
+aviso_tela()
 
-avisoTela()
+pastaExiste = os.path.exists("cofre")
+arquivoExiste = os.path.exists(path=CAMINHO_DADOS_JSON)
 
 # Verificação se o cofre existe
-caminhoDadosJson = os.path.join("sistema", "dados.json")
-pastaExiste = os.path.exists("sistema")
-arquivoExiste = os.path.exists(caminhoDadosJson)
-
 if pastaExiste and arquivoExiste:
+    """ FLUXO DE LOGIN """
     print("aaaaa")
 else:
-    senhaMestra = input("Defina a sua Senha Mestra (Essa senha será utilizada para entrar no gerenciador, ESCOLHA COM CUIDADO): ")
-
+    """ FLUXO DE CRIAÇÃO DO COFRE """
+    senhaMestra = input("Defina a sua Senha Mestra (Essa senha será utilizada para entrar no\n" \
+    "gerenciador, ESCOLHA COM CUIDADO): ")
+    
     # /// Geração dos 2 salts utilizando a biblioteca secrets, pode alterar o tamanho se for necessário
     saltCofre = secrets.token_bytes(16) # vai gerar 2^n bits hexadecimais
-    saltHashAutenticação = secrets.token_bytes(16)
+    saltHMAC = secrets.token_bytes(16)
 
-    senhaMestra = senhaMestra.encode()
-    saltCofre = saltCofre
+    senhaMestra = senhaMestra.encode("utf-8")
 
-
-    # Utlizando do algoritmo de kdf scrypt para gerar a chave do cofre 
+    # Utilizando do algoritmo de kdf scrypt para gerar as chaves e o hash 
     chaveCofre = hashlib.scrypt(password=senhaMestra, salt=saltCofre, n=16384, r=8, p=1,dklen=32)
-    hashAutenticação = hashlib.scrypt(password=chaveCofre, salt=saltHashAutenticação, n=16384, r=8,p=1,dklen=32 )
-    os.makedirs("sistema")
-    print(os.path.abspath("sistema"))
+    chaveHMAC = hashlib.scrypt(password=senhaMestra, salt=saltHMAC, n=16384, r=8, p=1,dklen=32)
+    hashAutenticacao = hashlib.sha256(string=chaveCofre).digest()
+
+    # Criando a pasta sistema e seus arquivos
+    os.makedirs("cofre", exist_ok=True)
+
+    arquivos = ["dados.json", "timer.json", "hmac.txt"]
+    for arquivo in arquivos:
+        caminho = os.path.join("cofre", arquivo)
+        if not os.path.exists(caminho):
+            with open(caminho, "w", encoding="utf-8") as arq:
+                pass
+
+    # Criando a estrutura do dados.json
+    if os.path.getsize(filename=CAMINHO_DADOS_JSON) == 0:
+        estrutura = {
+            "seguranca": {},
+            "servicos": {}
+        }
+
+        escrever_json(caminho=CAMINHO_DADOS_JSON, objeto=estrutura)
+
+    # Enviando as informações necessárias para o dados.json
+    seguranca = {
+        "saltCofre": saltCofre.hex(),
+        "saltHMAC": saltHMAC.hex(),
+        "hashAutenticacao": hashAutenticacao.hex()
+    }
+
+    dados = ler_json(CAMINHO_DADOS_JSON)
+    dados["seguranca"] = seguranca
+    escrever_json(caminho=CAMINHO_DADOS_JSON, objeto=dados)
+
+    # Enviando as informações necessárias para o timer.json
+    dados = ler_json(CAMINHO_TIMER_JSON)
+    
+    dados =  {
+        "tentativasErradas": 0,
+        "bloqueadoAte": 0,
+        "multiplicadorBloqueio": 1
+    }
+
+    escrever_json(caminho=CAMINHO_TIMER_JSON, objeto=dados)
 
 
     
+        
 
-
-
-
-
-
-
-
-
-
+    
 
 
 
