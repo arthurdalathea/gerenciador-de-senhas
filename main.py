@@ -26,9 +26,9 @@ def limpar_buffer_teclado():
         import termios
         termios.tcflush(sys.stdin, termios.TCIFLUSH) # comando para limpar os dados de entrada do terminal
 
-def ler_json(caminho):
+def ler_json(caminhoArquivo: str):
     # Abre o arquivo como leitor
-    with open(caminho, "r", encoding="utf-8") as arq:
+    with open(caminhoArquivo, "r", encoding="utf-8") as arq:
         conteudo = arq.read()
         # Condição para verificar se o arquivo está vazio
         if not conteudo.strip():
@@ -36,35 +36,75 @@ def ler_json(caminho):
         # Retorna o JSON en forma de dicionário
         return json.loads(conteudo)
 
-def escrever_json(caminho, objeto):
+def escrever_json(caminhoArquivo: str, objeto: dict):
     # Abre o arquivo com permissão de escrita
-    with open(caminho, "w", encoding="utf-8") as arq:
+    with open(caminhoArquivo, "w", encoding="utf-8") as arq:
         # Escreve o objeto no JSON
         json.dump(objeto, arq, indent=4)
 
+def salvar_hmac(caminhoArquivo: str, hmac: str):
+    # Abre o arquivo txt com permissão de escrita
+    with open(caminhoArquivo, "w", encoding="utf-8") as arquivo:
+        arquivo.write(hmac) 
+
+def calcular_hmac(caminhoArquivo: str, chaveHMAC: bytes):
+    # Abre o arquivo como leitor (em bytes)
+    with open(caminhoArquivo, "rb") as arq:
+        dados = arq.read()
+    # Calcula o HMAC
+    return hmac.new(chaveHMAC, dados, hashlib.sha256).hexdigest()
 
 """ VARIÁVEIS CONSTANTES """
 CAMINHO_DADOS_JSON = os.path.join("cofre", "dados.json")
 CAMINHO_TIMER_JSON = os.path.join("cofre", "timer.json")
+CAMINHO_HMAC_TXT = os.path.join("cofre", "hmac.txt")
 
 
 """ PROGRAMA """
-aviso_tela()
-
 pastaExiste = os.path.exists("cofre")
 arquivoExiste = os.path.exists(path=CAMINHO_DADOS_JSON)
 
 # Verificação se o cofre existe
 if pastaExiste and arquivoExiste:
     """ FLUXO DE LOGIN """
-    print("aaaaa")
+    aviso_tela()
+
+    # Pegando o horario de bloqueio do usuário e o horário atual, para verificarmos se o usuário ainda está bloqueado
+    dados = ler_json(caminhoArquivo=CAMINHO_TIMER_JSON)
+    bloqueadoAte = dados["bloqueadoAte"]
+    horarioAtual = int(time.time())
+    tempoBloqueado = bloqueadoAte - horarioAtual # Se o resultado for positivo, esse é o tempo em segundos que o usuário está bloqueado
+
+    if tempoBloqueado > 0:
+        # Mostrar que o usuário ainda está bloqueado
+        print(f"Você ainda está bloqueado por {tempoBloqueado} segundos!")
+        for i in range(tempoBloqueado-1, -1, -1):
+            time.sleep(1)
+            if i == 0:
+                print(f"\rRestam {i} segundos...    ")  # Não retirem esses espaços, faz parte do print
+                print()
+            else:
+                print(f"\rRestam {i} segundos...    ", end="", flush=True) # Aqui também não retirem os espaços
+        
+        limpar_buffer_teclado()
+    
+    else:
+        """ FALTA FAZER ESSA PARTE DO FLUXO DE LOGIN """
+
+    
 else:
     """ FLUXO DE CRIAÇÃO DO COFRE """
-    senhaMestra = input("Defina a sua Senha Mestra (Essa senha será utilizada para entrar no\n" \
+    # Criando a pasta cofre
+    os.makedirs("cofre", exist_ok=True)
+
+    aviso_tela()
+
+    senhaMestra = input("Defina a sua Senha Mestra (Essa senha você utilizará para entrar no\n" \
     "gerenciador, ESCOLHA COM CUIDADO): ")
+    print()
     
-    # /// Geração dos 2 salts utilizando a biblioteca secrets, pode alterar o tamanho se for necessário
-    saltCofre = secrets.token_bytes(16) # vai gerar 2^n bits hexadecimais
+    # Geração dos 2 salts utilizando a biblioteca secrets
+    saltCofre = secrets.token_bytes(16)
     saltHMAC = secrets.token_bytes(16)
 
     senhaMestra = senhaMestra.encode("utf-8")
@@ -74,9 +114,7 @@ else:
     chaveHMAC = hashlib.scrypt(password=senhaMestra, salt=saltHMAC, n=16384, r=8, p=1,dklen=32)
     hashAutenticacao = hashlib.sha256(string=chaveCofre).digest()
 
-    # Criando a pasta sistema e seus arquivos
-    os.makedirs("cofre", exist_ok=True)
-
+    # Criando os arquivos da pasta cofre
     arquivos = ["dados.json", "timer.json", "hmac.txt"]
     for arquivo in arquivos:
         caminho = os.path.join("cofre", arquivo)
@@ -91,7 +129,7 @@ else:
             "servicos": {}
         }
 
-        escrever_json(caminho=CAMINHO_DADOS_JSON, objeto=estrutura)
+        escrever_json(caminhoArquivo=CAMINHO_DADOS_JSON, objeto=estrutura)
 
     # Enviando as informações necessárias para o dados.json
     seguranca = {
@@ -102,7 +140,7 @@ else:
 
     dados = ler_json(CAMINHO_DADOS_JSON)
     dados["seguranca"] = seguranca
-    escrever_json(caminho=CAMINHO_DADOS_JSON, objeto=dados)
+    escrever_json(caminhoArquivo=CAMINHO_DADOS_JSON, objeto=dados)
 
     # Enviando as informações necessárias para o timer.json
     dados = ler_json(CAMINHO_TIMER_JSON)
@@ -113,17 +151,23 @@ else:
         "multiplicadorBloqueio": 1
     }
 
-    escrever_json(caminho=CAMINHO_TIMER_JSON, objeto=dados)
+    escrever_json(caminhoArquivo=CAMINHO_TIMER_JSON, objeto=dados)
 
+    # Calculando o HMAC do dados.json
+    assinatura = calcular_hmac(caminhoArquivo=CAMINHO_DADOS_JSON, chaveHMAC=chaveHMAC)
+
+    # Salvando o HMAC no hmac.txt
+    salvar_hmac(caminhoArquivo=CAMINHO_HMAC_TXT, hmac=assinatura)
+
+
+""" MENU PRINCIPAL """
+print("Carregando Menu Principal...")
+time.sleep(2)
 
     
         
 
     
-
-
-
-
 
 
 """ ESSE É O CÓDIGO BASE, SERÁ USADO COMO INFLUENCIA PARA A CONSTRUÇÃO DO GERENCIADOR """
