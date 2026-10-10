@@ -6,11 +6,14 @@ import json
 import hmac
 import sys
 
+
+""" ALGUNS BUGS PARA CORRIGIR COMO A CHAVE DO HMAC E FALTA INPLEMENTAR A SENHA  """
+
 """ FUNÇÕES DO PROGRAMA """
 def aviso_tela ():
     limpar_buffer_teclado()
     print("=" * 70)
-    print("⚠️  ATENÇÃO: Não altere ou delete a pasta cofre, onde suas senhas serão\n" \
+    print("⚠️  ATENÇÃO: Não altere ou delete a pasta cofre, onde suas senha serão\n" \
     "armazenadas. Caso qualquer modificação externa seja detectada, o cofre\n" \
     "será bloqueado e deletado permanentemente por segurança!")
     print("=" * 70)
@@ -40,7 +43,7 @@ def escrever_json(caminhoArquivo: str, objeto: dict):
     # Abre o arquivo com permissão de escrita
     with open(caminhoArquivo, "w", encoding="utf-8") as arq:
         # Escreve o objeto no JSON
-        json.dump(objeto, arq, indent=4)
+        json.dump(objeto, arq, indent=4, ensure_ascii=False)
 
 def salvar_hmac(caminhoArquivo: str, hmac: str):
     # Abre o arquivo txt com permissão de escrita
@@ -89,7 +92,115 @@ if pastaExiste and arquivoExiste:
         limpar_buffer_teclado()
     
     else:
-        """ FALTA FAZER ESSA PARTE DO FLUXO DE LOGIN """
+        # """ FALTA FAZER ESSA PARTE DO FLUXO DE LOGIN """
+
+        # # Vai faltar a parte do controle de tentativas ainda
+
+        tentativas = ler_json(CAMINHO_TIMER_JSON)
+        senhaM = input("Digite sua senha Mestra: ")
+        # tentativas["segurança"][]
+        while hashlib.scrypt(password=senhaM, salt=tentativas["seguranca"]["saltCofre"], n=16384, r=8, p=1,dklen=32) != tentativas["segurança"]["saltcofre"]:
+            senhaM = input("Digite a senha correta: ")
+
+        
+
+        print("="*30)
+        print("      PAINEL DE AÇÕES")
+        print("="*30)
+        print(" 1 - Cadastrar nova senha")
+        print(" 2 - Listar senha")
+        print(" 3 - Excluir senha")
+        print(" 4 - Alterar senha")
+        print(" 5 - Sair")
+        print("="*30)
+        while True:
+            acao = input("Digite qual ação você deseja: ")
+            while acao not in ["1","2","3","4","5"]:
+                acao = input("DIgite uma opção válida: ")
+            match acao:
+                case "1":
+                    # Cadastrar senha:
+                    pass
+                    cofre = ler_json(CAMINHO_DADOS_JSON)
+                    app = input("Digite qual aplicativo pertence").lower()
+                    if app not in cofre["servicos"]:
+                        cofre["servicos"][app] = {}
+                    usuario = input(f"Digite seu usuário do {app} : ")
+                    senha = input(f"Digite a senha do usuário {usuario} : ")
+                    cofre["servicos"][app][usuario] = senha
+                    hmacResultado = calcular_hmac(CAMINHO_DADOS_JSON, chaveHMAC)
+                    salvar_hmac(CAMINHO_HMAC_TXT, hmacResultado)
+                    escrever_json(CAMINHO_DADOS_JSON, cofre)
+                    print("Senha Cadastrada com sucesso.\n")
+
+                case "2":
+                    # Listar cofre:
+                    pass
+                    cofre = ler_json(CAMINHO_DADOS_JSON)
+                    if not cofre["servicos"]:
+                        print("Nenhuma senha cadastrada o momento.\n")
+                    else:
+                        for appNome, dictApp in cofre["servicos"].items():
+                            print("="*15)
+                            print(f"Senhas do {appNome}")
+                            print("="*15)
+                            for usuario, senha in cofre["servicos"][dictApp].items():
+                                print(f"{usuario} : {senha}")
+                            print()
+                        escrever_json(CAMINHO_DADOS_JSON, cofre)
+                case "3":
+                    # Excluir cofre:
+                    pass
+                    cofre = ler_json(CAMINHO_DADOS_JSON)
+                    if not cofre["servicos"]:
+                        print("Nenhuma senha cadastrada no momento.\n")
+                    else:
+                        app = input("Digite de qual app pertence a senha: ").lower()
+                        while app not in cofre["servicos"]:
+                            app = input("Digite um app válido: ").lower()
+                        usuario = input("Digite o usuário que você deseja excluir: ")
+                        while usuario not in cofre["servicos"]:
+                            usuario = input("Digite um usuário válido")
+                        # Decisão se o usuário realmente quer apagar a senha
+                        escolha = input("Digite se você realmente quer apagar a senha (s/n): ").lower()
+                        if escolha == "s":
+                            del cofre["servicos"][app][usuario]
+                            print("Usuário e senha deletados com sucesso.\n")
+                        else:
+                            print("Senha e usuário não foram deletados\n")
+                        hmacResultado = calcular_hmac(CAMINHO_DADOS_JSON, chaveHMAC)
+                        salvar_hmac(hmacResultado)
+                        escrever_json(CAMINHO_DADOS_JSON, cofre)
+                case "4":
+                    # Alterar senha:
+                    pass
+                    cofre = ler_json(CAMINHO_DADOS_JSON)
+                    if not cofre["servicos"]:
+                        print("Nenhuma senha cadastrada no momento.")
+                    else:
+                        app = input("Digite de qual app pertence a senha: ").lower()
+                        while app not in cofre["servicos"]:
+                            app = input("Digite um app válido: ").lower()
+                        usuario = input("Digite qual usuário você quer trocar: ")
+                        while usuario not in cofre["servicos"]:
+                            usuario = input("Digite um usuario válido: ")
+                        novoUsuario = input("Digite o novo nome de usuario: ")
+                        while novoUsuario == usuario:
+                            novoUsuario = input("Digite um novo usuário diferente do anterior: ")
+                        senhaNova = input("Digite a nova senha: ")
+                        while senhaNova == cofre["servico"][app][usuario]:
+                            senhaNova = input("Digite uma senha diferente da anterior: ")
+                        del cofre["servicos"][app][usuario]
+                        cofre["servicos"][app][novoUsuario] = senhaNova
+                    escrever_json(CAMINHO_DADOS_JSON, cofre)
+                    hmacResultado = calcular_hmac(CAMINHO_DADOS_JSON, chaveHMAC)
+                    salvar_hmac(CAMINHO_HMAC_TXT, hmacResultado)
+                    print("Senha alterada com sucesso.\n")
+                case "5":
+                    # Parar execução do programa: 
+                    print("Programa encerrado.")
+                    break
+
 
     
 else:
@@ -121,7 +232,7 @@ else:
         if not os.path.exists(caminho):
             with open(caminho, "w", encoding="utf-8") as arq:
                 pass
-
+                
     # Criando a estrutura do dados.json
     if os.path.getsize(filename=CAMINHO_DADOS_JSON) == 0:
         estrutura = {
@@ -158,6 +269,12 @@ else:
 
     # Salvando o HMAC no hmac.txt
     salvar_hmac(caminhoArquivo=CAMINHO_HMAC_TXT, hmac=assinatura)
+
+
+
+
+
+
 
 
 """ MENU PRINCIPAL """
@@ -217,7 +334,7 @@ time.sleep(2)
 #     print("      PAINEL DE AÇÕES")
 #     print("="*30)
 #     print(" 1 - Cadastrar nova senha")
-#     print(" 2 - Listar senhas")
+#     print(" 2 - Listar cofre")
 #     print(" 3 - Excluir senha")
 #     print(" 4 - Alterar senha")
 #     print(" 5 - Sair")
@@ -238,24 +355,24 @@ time.sleep(2)
 #             usuario = input("Digite qual o nome do usuario: ") 
 #             senha = input(f"Digite sua senha do {app}: ")
 #             with open("Dados.json", "r", encoding="utf-8") as arquivo:
-#                 senhas = json.load(arquivo)
-#             if app not in senhas:
-#                 senhas[app] = {}
-#                 senhas[app][usuario] = senha
+#                 cofre = json.load(arquivo)
+#             if app not in cofre:
+#                 cofre[app] = {}
+#                 cofre[app][usuario] = senha
 #             else:
-#                 senhas[app][usuario] = senha
+#                 cofre[app][usuario] = senha
 #             with open("Dados.json", "w", encoding="utf-8") as arquivo:
-#                 json.dump(senhas, arquivo, indent=4, ensure_ascii= False)
+#                 json.dump(cofre, arquivo, indent=4, ensure_ascii= False)
 #             print("Senha cadatrada com sucesso")
 #         case 2:
 #             with open("Dados.json", "r", encoding="utf-8") as arquivo:
-#                 senhas = json.load(arquivo)
-#             if not senhas:
+#                 cofre = json.load(arquivo)
+#             if not cofre:
 #                 print("Nenhuma senha cadastrada.\n")
 #             else:
 #                 with open("Dados.json", "r", encoding="utf-8") as arquivo:
-#                     senhas = json.load(arquivo)
-#                 for app, usuarios in senhas.items():
+#                     cofre = json.load(arquivo)
+#                 for app, usuarios in cofre.items():
 #                     print(f"Senhas {app} :")
 #                     for usuario, Senhas in usuarios.items():
 #                         print(f"Usuario : {usuario}")
@@ -263,44 +380,44 @@ time.sleep(2)
 #         case 3:
 #             # Validação se dicionário Senhas não está Vazio
 #             with open("Dados.json", "r", encoding="utf-8") as arquivo:
-#                 senhas = json.load(arquivo)
-#             if not senhas:
-#                 print("Nenhuma senha cadastrada então não há senhas para excluir\n")
+#                 cofre = json.load(arquivo)
+#             if not cofre:
+#                 print("Nenhuma senha cadastrada então não há cofre para excluir\n")
 #             else:
 #                 app = input("Digite de qual aplicativo você deseja deletar sua senha: ").lower()
-#                 while app not in senhas:
+#                 while app not in cofre:
 #                     app = input("Digite um aplicativo presente : ").lower()
 #                 usuario = input("Digite o nome do usuário: ")
-#                 while usuario not in senhas[app]:
+#                 while usuario not in cofre[app]:
 #                     usuario = input(f"Digite um usuario presente em {app} : ")
 #                 escolha = input("Você realmente quer apagar a senha: s/n").lower()
 #                 if escolha != "s":
 #                     print("Senha não foi deletada.\n")
 #                 else:
-#                     del senhas[app][usuario]
+#                     del cofre[app][usuario]
 #                     print("Senha excluída com sucesso.")
 #             with open("Dados.json", "w", encoding="utf-8") as arquivo:
-#                 json.dump(senhas, arquivo, indent=4, ensure_ascii=False)
+#                 json.dump(cofre, arquivo, indent=4, ensure_ascii=False)
 #         case 4:
 #             # Validação se o dicionário Senhas não está Vazio
 #             with open("Dados.json", "r", encoding="utf-8") as arquivo:
-#                 senhas = json.load(arquivo)
-#             if not senhas:
+#                 cofre = json.load(arquivo)
+#             if not cofre:
 #                 print("Nenhuma senha está cadastrada no momento.")
 #             else:
 #                 app = input("Digite de qual aplicativo é a senha que deseja alterar: ").lower()
-#                 while app not in senhas:
+#                 while app not in cofre:
 #                     app = input("Digite um aplicativo válido: ").lower()
 #                 usuario = input("Digite o usuário: ")
-#                 while usuario not in senhas[app]:
+#                 while usuario not in cofre[app]:
 #                     usuario = input("Digite um usuário válido: ")
 #                 senhaNova = input(f"Digite a nova senha : ")
-#                 while senhaNova == senhas[app][usuario]:
+#                 while senhaNova == cofre[app][usuario]:
 #                     senhaNova = input("Digite a nova senha diferente da anterior : ")
-#                 senhas[app][usuario] = senhaNova
+#                 cofre[app][usuario] = senhaNova
 #                 print("Senha alterada com sucesso\n")    
 #             with open("Dados.json", "w", encoding="utf-8") as arquivo:
-#                 json.dump(senhas, arquivo, indent=4, ensure_ascii=False)        
+#                 json.dump(cofre, arquivo, indent=4, ensure_ascii=False)        
 #         case 5:
 #             print("Programa encerrado.")
 #             break
