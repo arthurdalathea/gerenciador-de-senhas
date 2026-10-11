@@ -94,15 +94,33 @@ if pastaExiste and arquivoExiste:
     else:
         # """ FALTA FAZER ESSA PARTE DO FLUXO DE LOGIN """
 
-        # # Vai faltar a parte do controle de tentativas ainda
-
+        # Vai faltar a parte do controle de tentativas ainda
+        # Algumas partes estão comentadas pois estão dando errando então comentei para não dar problemas.
         tentativas = ler_json(CAMINHO_TIMER_JSON)
+        dados = ler_json(CAMINHO_DADOS_JSON)
         senhaM = input("Digite sua senha Mestra: ")
-        # tentativas["segurança"][]
-        while hashlib.scrypt(password=senhaM, salt=tentativas["seguranca"]["saltCofre"], n=16384, r=8, p=1,dklen=32) != tentativas["segurança"]["saltcofre"]:
+        tentativas["tentativasErradas"] += 1
+        while hashlib.scrypt(password=senhaM, salt=dados["seguranca"]["saltCofre"], n=16384, r=8, p=1,dklen=32).hex() != dados["segurança"]["hashAutenticacao"].hex():
             senhaM = input("Digite a senha correta: ")
+            tentativas["tentativasErradas"] += 1
+            if tentativas["tentativasErradas"] % 5 == 0:
+                print()
+                print(f"ACESSO BLOQUEADO POR {tentativas*6} SEGUNDOS!")
+                tentativas["bloqueadoAté"] += tentativas["tentativasErradas"]*6
+                for i in range(tentativas*6-1, -1, -1):
+                    time.sleep(1)
+                    if i == 0:
+                        print(f"\rRestam {i} segundos...      ")  # Não retirem esses espaços, faz parte do print
+                        print()
+                    else:
+                        print(f"\rRestam {i} segundos...      ", end="", flush=True) # Aqui também não retirem os espaços
+            else: 
+                print("ACESSO NEGADO!")
+                print()
+                senhaM = input("Digite a senha correta: ")
+                tentativas["tentativasErradas"] += 1
+            limpar_buffer_teclado()
 
-        
 
         print("="*30)
         print("      PAINEL DE AÇÕES")
@@ -128,7 +146,7 @@ if pastaExiste and arquivoExiste:
                     usuario = input(f"Digite seu usuário do {app} : ")
                     senha = input(f"Digite a senha do usuário {usuario} : ")
                     cofre["servicos"][app][usuario] = senha
-                    hmacResultado = calcular_hmac(CAMINHO_DADOS_JSON, chaveHMAC)
+                    # hmacResultado = calcular_hmac(CAMINHO_DADOS_JSON, chaveHMAC)
                     salvar_hmac(CAMINHO_HMAC_TXT, hmacResultado)
                     escrever_json(CAMINHO_DADOS_JSON, cofre)
                     print("Senha Cadastrada com sucesso.\n")
@@ -168,7 +186,7 @@ if pastaExiste and arquivoExiste:
                             print("Usuário e senha deletados com sucesso.\n")
                         else:
                             print("Senha e usuário não foram deletados\n")
-                        hmacResultado = calcular_hmac(CAMINHO_DADOS_JSON, chaveHMAC)
+                        # hmacResultado = calcular_hmac(CAMINHO_DADOS_JSON, chaveHMAC)
                         salvar_hmac(hmacResultado)
                         escrever_json(CAMINHO_DADOS_JSON, cofre)
                 case "4":
@@ -193,7 +211,7 @@ if pastaExiste and arquivoExiste:
                         del cofre["servicos"][app][usuario]
                         cofre["servicos"][app][novoUsuario] = senhaNova
                     escrever_json(CAMINHO_DADOS_JSON, cofre)
-                    hmacResultado = calcular_hmac(CAMINHO_DADOS_JSON, chaveHMAC)
+                    hmacResultado = calcular_hmac(CAMINHO_DADOS_JSON)
                     salvar_hmac(CAMINHO_HMAC_TXT, hmacResultado)
                     print("Senha alterada com sucesso.\n")
                 case "5":
@@ -231,7 +249,9 @@ else:
         caminho = os.path.join("cofre", arquivo)
         if not os.path.exists(caminho):
             with open(caminho, "w", encoding="utf-8") as arq:
-                pass
+                arq.write(caminho)
+        else:
+            pass
                 
     # Criando a estrutura do dados.json
     if os.path.getsize(filename=CAMINHO_DADOS_JSON) == 0:
