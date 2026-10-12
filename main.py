@@ -37,7 +37,7 @@ def ler_json(caminhoArquivo: str):
         if not conteudo.strip():
             return {}
         # Retorna o JSON en forma de dicionário
-        return json.loads(conteudo)
+        return json.load(conteudo)
 
 def escrever_json(caminhoArquivo: str, objeto: dict):
     # Abre o arquivo com permissão de escrita
@@ -73,7 +73,7 @@ if pastaExiste and arquivoExiste:
     aviso_tela()
 
     # Pegando o horario de bloqueio do usuário e o horário atual, para verificarmos se o usuário ainda está bloqueado
-    dados = ler_json(caminhoArquivo=CAMINHO_TIMER_JSON)
+    dados = ler_json(CAMINHO_TIMER_JSON)
     bloqueadoAte = dados["bloqueadoAte"]
     horarioAtual = int(time.time())
     tempoBloqueado = bloqueadoAte - horarioAtual # Se o resultado for positivo, esse é o tempo em segundos que o usuário está bloqueado
@@ -98,16 +98,16 @@ if pastaExiste and arquivoExiste:
         # Algumas partes estão comentadas pois estão dando errando então comentei para não dar problemas.
         tentativas = ler_json(CAMINHO_TIMER_JSON)
         dados = ler_json(CAMINHO_DADOS_JSON)
-        senhaM = input("Digite sua senha Mestra: ")
+        senhaM = input("Digite sua senha Mestra: ").encode("utf-8")
         tentativas["tentativasErradas"] += 1
-        while hashlib.scrypt(password=senhaM, salt=dados["seguranca"]["saltCofre"], n=16384, r=8, p=1,dklen=32).hex() != dados["segurança"]["hashAutenticacao"].hex():
-            senhaM = input("Digite a senha correta: ")
+        while hashlib.scrypt(password=senhaM, salt=dados["seguranca"]["saltCofre"], n=16384, r=8, p=1,dklen=32).hex() != dados["seguranca"]["hashAutenticacao"]:
+            senhaM = input("Digite a senha correta: ").encode("utf-8")
             tentativas["tentativasErradas"] += 1
             if tentativas["tentativasErradas"] % 5 == 0:
                 print()
-                print(f"ACESSO BLOQUEADO POR {tentativas*6} SEGUNDOS!")
-                tentativas["bloqueadoAté"] += tentativas["tentativasErradas"]*6
-                for i in range(tentativas*6-1, -1, -1):
+                print(f"ACESSO BLOQUEADO POR {tentativas['tentativasErradas'] *6} SEGUNDOS!")
+                tentativas["bloqueadoAte"] += tentativas["tentativasErradas"] *6
+                for i in range(tentativas["tentativasErradas"]*6-1, -1, -1):
                     time.sleep(1)
                     if i == 0:
                         print(f"\rRestam {i} segundos...      ")  # Não retirem esses espaços, faz parte do print
@@ -146,9 +146,9 @@ if pastaExiste and arquivoExiste:
                     usuario = input(f"Digite seu usuário do {app} : ")
                     senha = input(f"Digite a senha do usuário {usuario} : ")
                     cofre["servicos"][app][usuario] = senha
-                    # hmacResultado = calcular_hmac(CAMINHO_DADOS_JSON, chaveHMAC)
+                    escrever_json(CAMINHO_HMAC_TXT, cofre)
+                    hmacResultado = calcular_hmac(CAMINHO_DADOS_JSON, senhaM.encode("utf-8"))
                     salvar_hmac(CAMINHO_HMAC_TXT, hmacResultado)
-                    escrever_json(CAMINHO_DADOS_JSON, cofre)
                     print("Senha Cadastrada com sucesso.\n")
 
                 case "2":
@@ -158,14 +158,14 @@ if pastaExiste and arquivoExiste:
                     if not cofre["servicos"]:
                         print("Nenhuma senha cadastrada o momento.\n")
                     else:
-                        for appNome, dictApp in cofre["servicos"].items():
+                        for appNome, App in cofre["servicos"].items():
                             print("="*15)
                             print(f"Senhas do {appNome}")
                             print("="*15)
-                            for usuario, senha in cofre["servicos"][dictApp].items():
+                            for usuario, senha in App.items():
                                 print(f"{usuario} : {senha}")
                             print()
-                        escrever_json(CAMINHO_DADOS_JSON, cofre)
+                        escrever_json(CAMINHO_DADOS_JSON, senhaM.encode("utf-8"))
                 case "3":
                     # Excluir cofre:
                     pass
@@ -177,7 +177,7 @@ if pastaExiste and arquivoExiste:
                         while app not in cofre["servicos"]:
                             app = input("Digite um app válido: ").lower()
                         usuario = input("Digite o usuário que você deseja excluir: ")
-                        while usuario not in cofre["servicos"]:
+                        while usuario not in cofre["servicos"][app]:
                             usuario = input("Digite um usuário válido")
                         # Decisão se o usuário realmente quer apagar a senha
                         escolha = input("Digite se você realmente quer apagar a senha (s/n): ").lower()
@@ -186,9 +186,9 @@ if pastaExiste and arquivoExiste:
                             print("Usuário e senha deletados com sucesso.\n")
                         else:
                             print("Senha e usuário não foram deletados\n")
-                        # hmacResultado = calcular_hmac(CAMINHO_DADOS_JSON, chaveHMAC)
-                        salvar_hmac(hmacResultado)
                         escrever_json(CAMINHO_DADOS_JSON, cofre)
+                        hmacResultado = calcular_hmac(CAMINHO_DADOS_JSON, senhaM.encode("utf-8"))
+                        salvar_hmac(CAMINHO_HMAC_TXT,hmacResultado)
                 case "4":
                     # Alterar senha:
                     pass
@@ -211,7 +211,7 @@ if pastaExiste and arquivoExiste:
                         del cofre["servicos"][app][usuario]
                         cofre["servicos"][app][novoUsuario] = senhaNova
                     escrever_json(CAMINHO_DADOS_JSON, cofre)
-                    hmacResultado = calcular_hmac(CAMINHO_DADOS_JSON)
+                    hmacResultado = calcular_hmac(CAMINHO_DADOS_JSON, senhaM.encode("utf-8"))
                     salvar_hmac(CAMINHO_HMAC_TXT, hmacResultado)
                     print("Senha alterada com sucesso.\n")
                 case "5":
@@ -241,7 +241,7 @@ else:
     # Utilizando do algoritmo de kdf scrypt para gerar as chaves e o hash 
     chaveCofre = hashlib.scrypt(password=senhaMestra, salt=saltCofre, n=16384, r=8, p=1,dklen=32)
     chaveHMAC = hashlib.scrypt(password=senhaMestra, salt=saltHMAC, n=16384, r=8, p=1,dklen=32)
-    hashAutenticacao = hashlib.sha256(string=chaveCofre).digest()
+    hashAutenticacao = hashlib.sha256(chaveCofre).hexdigest()
 
     # Criando os arquivos da pasta cofre
     arquivos = ["dados.json", "timer.json", "hmac.txt"]
