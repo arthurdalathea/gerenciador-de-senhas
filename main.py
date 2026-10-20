@@ -50,8 +50,8 @@ def ler_json(caminhoArquivo: str):
         mensagem_arquivo_removido()
 
     except json.JSONDecodeError:
-        print("[ERRO] Um arquivo JSON do cofre está inválido!")
-        print("Por segurança, o acesso ao cofre será bloqueado.\n")
+        print("[ERRO] Um arquivo JSON do cofre está inválido!\n")
+        print("Por motivos de segurança, o acesso ao cofre será bloqueado.\n")
         time.sleep(2)
         print("Encerrando o programa...")
         time.sleep(2)
@@ -77,7 +77,7 @@ def ler_txt(caminhoArquivo: str):
 
     except UnicodeDecodeError:
         print("[ERRO] O conteúdo de um arquivo do cofre está inválido.\n")
-        print("Por segurança, o acesso ao cofre será bloqueado.\n")
+        print("Por motivos de segurança, o acesso ao cofre será bloqueado.\n")
         time.sleep(2)
         print("Encerrando o programa...")
         time.sleep(2)
