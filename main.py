@@ -136,6 +136,11 @@ def validar_dados_json(dados: dict):
     # Armazenará todos os erros que derem no arquivo, para serem printados depois
     erros = []
 
+    # Verificando se o arquivo é um dicionário
+    if not isinstance(dados, dict):
+        erros.append("O conteúdo do dados.json está inválido.")
+        return erros
+
     # Verificando se o arquivo possui a chave "seguranca" e "servicos" e se elas são um dicionário
     if not isinstance(dados.get("seguranca"), dict):
         erros.append("Os dados de segurança estão inválidos.")
