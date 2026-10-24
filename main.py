@@ -5,12 +5,12 @@ import os
 import json
 import hmac
 import sys
+import subprocess
 
 """ VARIÁVEIS CONSTANTES """
 CAMINHO_DADOS_JSON = os.path.join("cofre", "dados.json")
 CAMINHO_TIMER_JSON = os.path.join("cofre", "timer.json")
 CAMINHO_HMAC_TXT = os.path.join("cofre", "hmac.txt")
-
 
 """ FUNÇÕES DO PROGRAMA """
 def aviso_tela():
@@ -20,8 +20,9 @@ def aviso_tela():
     "armazenadas. Caso qualquer modificação externa seja detectada, o cofre\n" \
     "será bloqueado e deletado permanentemente por segurança!")
     print("=" * 70)
-    input("\nPressione ENTER para continuar...")
     print()
+    aguardar_enter()
+    limpar_terminal()
 
 def mensagem_arquivo_removido():
     print("[ERRO] Um arquivo obrigatório do cofre foi removido!\n")
@@ -58,13 +59,24 @@ def ler_json(caminhoArquivo: str):
         sys.exit()
         
 def escrever_json(caminhoArquivo: str, objeto: dict):
+    # Se o arquivo não existir
     if not os.path.exists(caminhoArquivo):
         mensagem_arquivo_removido()
 
-    # Abre o arquivo com permissão de escrita
-    with open(caminhoArquivo, "w", encoding="utf-8") as arq:
-        # Escreve o objeto no json
-        json.dump(objeto, arq, indent=4, ensure_ascii=False)
+    # Usamos um arquivo temporário para salvar os dados. Caso de um erro ao salvar os dados, o arquivo principal não é afetado
+    caminhoTemporario = caminhoArquivo + ".tmp"
+
+    try:
+        with open(caminhoTemporario, "w", encoding="utf-8") as arq:
+            json.dump(objeto, arq, indent=4, ensure_ascii=False)
+
+        os.replace(caminhoTemporario, caminhoArquivo)
+
+    except (OSError, TypeError, ValueError) as erro:
+        print(f"[ERRO] Não foi possível salvar os dados: {erro}")
+
+        if os.path.exists(caminhoTemporario):
+            os.remove(caminhoTemporario)
 
 def ler_txt(caminhoArquivo: str):
     try:
@@ -99,6 +111,36 @@ def calcular_hmac(caminhoArquivo: str, chaveHMAC: bytes):
         mensagem_arquivo_removido()
 
     return hmac.new(chaveHMAC, dados, hashlib.sha256).hexdigest()
+
+def limpar_terminal():
+    if os.name == "nt":
+        subprocess.run("cls", shell=True, check=False)
+    else:
+        subprocess.run("clear", shell=True, check=False)
+
+def aguardar_enter():
+    print("Pressione ENTER para continuar...")
+
+    if os.name == "nt":  
+        import msvcrt
+        while True:
+            tecla = msvcrt.getwch()
+            if tecla == "\r":
+                break
+    else:  
+        import termios
+        import tty
+
+        fd = sys.stdin.fileno()
+        configuracao_anterior = termios.tcgetattr(fd)
+        try:
+            tty.setraw(fd)
+            while True:
+                tecla = sys.stdin.read(1)
+                if tecla in ("\r", "\n"):
+                    break
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, configuracao_anterior)
 
 # Essas funções embaixo servem para validar os dados dos arquivos antes da execução do programa
 def validar_dados_json(dados: dict):
@@ -226,6 +268,7 @@ def validar_arquivos(dados, timer, assinatura):
 
 
 """ PROGRAMA """
+limpar_terminal()
 
 pastaExiste = os.path.isdir("cofre")
 arquivosExistem = all([
@@ -263,6 +306,7 @@ if pastaExiste:
                 else:
                     print(f"\rRestam {i} segundos...    ", end="", flush=True) # Aqui também não retirem os espaços
             limpar_buffer_teclado()
+            limpar_terminal()
         
         # Seguindo o fluxo de login
         saltCofre = dados["seguranca"]["saltCofre"]
@@ -297,6 +341,7 @@ if pastaExiste:
                     else:
                         print(f"\rRestam {i} segundos...      ", end="", flush=True) # Aqui também não retirem os espaços
                 limpar_buffer_teclado()
+                limpar_terminal()
             else: 
                 print("ACESSO NEGADO!")
                 print()
@@ -403,246 +448,173 @@ else:
     # Salvando o HMAC no hmac.txt
     salvar_hmac(caminhoArquivo=CAMINHO_HMAC_TXT, hmac=hmacDados)
 
+    hmacTxt = ler_txt(CAMINHO_HMAC_TXT)
 
 """ MENU PRINCIPAL """
 print("Carregando Menu Principal...")
 print()
 time.sleep(2)
 
-print("="*30)
-print("      PAINEL DE AÇÕES")
-print("="*30)
-print(" 1 - Cadastrar nova senha")
-print(" 2 - Listar senha")
-print(" 3 - Excluir senha")
-print(" 4 - Alterar senha")
-print(" 5 - Sair")
-print("="*30)
 while True:
-    acao = input("Digite qual ação você deseja: ")
+    limpar_terminal()
+
+    largura = 70
+    print("=" * largura)
+    print("GERENCIADOR DE SENHAS".center(largura))
+    print("=" * largura)
+    print()
+    print("  [1]  Cadastrar nova senha")
+    print("  [2]  Listar senhas cadastradas")
+    print("  [3]  Excluir senha cadastrada")
+    print("  [4]  Alterar senha cadastrada")
+    print("  [5]  Sair")
+    print()
+    print("=" * largura)
+
+    acao = input("Digite qual ação você deseja (1-5): ")
+    print()
+
     while acao not in ["1","2","3","4","5"]:
-        acao = input("DIgite uma opção válida: ")
+        acao = input("[ERRO] Digite uma opção válida (1-5): ")
+        print()
+
+    limpar_terminal()
+
     match acao:
         case "1":
-            # Cadastrar senha:
-            pass
-            cofre = ler_json(CAMINHO_DADOS_JSON)
-            app = input("Digite qual aplicativo pertence").lower()
-            if app not in cofre["servicos"]:
-                cofre["servicos"][app] = {}
-            usuario = input(f"Digite seu usuário do {app} : ")
-            senha = input(f"Digite a senha do usuário {usuario} : ")
-            cofre["servicos"][app][usuario] = senha
-            escrever_json(CAMINHO_HMAC_TXT, cofre)
-            hmacResultado = calcular_hmac(CAMINHO_DADOS_JSON, senhaMestra.encode("utf-8"))
-            salvar_hmac(CAMINHO_HMAC_TXT, hmacResultado)
-            print("Senha Cadastrada com sucesso.\n")
+            # Cadastrar serviço:
+            print("=" * largura)
+            print("CADASTRAR SENHA".center(largura))
+            print("=" * largura)
+            print()
 
-        case "2":
-            # Listar cofre:
-            pass
-            cofre = ler_json(CAMINHO_DADOS_JSON)
-            if not cofre["servicos"]:
-                print("Nenhuma senha cadastrada o momento.\n")
+            servico = input("Nome do aplicativo ou serviço: ").lower().strip()
+            print()
+            
+            if servico in dados["servicos"]:
+                print("[ERRO] Esse serviço já está cadastrado!\n")
             else:
-                for appNome, App in cofre["servicos"].items():
-                    print("="*15)
-                    print(f"Senhas do {appNome}")
-                    print("="*15)
-                    for usuario, senha in App.items():
-                        print(f"{usuario} : {senha}")
-                    print()
-                escrever_json(CAMINHO_DADOS_JSON, senhaMestra.encode("utf-8"))
-        case "3":
-            # Excluir cofre:
-            pass
-            cofre = ler_json(CAMINHO_DADOS_JSON)
-            if not cofre["servicos"]:
-                print("Nenhuma senha cadastrada no momento.\n")
-            else:
-                app = input("Digite de qual app pertence a senha: ").lower()
-                while app not in cofre["servicos"]:
-                    app = input("Digite um app válido: ").lower()
-                usuario = input("Digite o usuário que você deseja excluir: ")
-                while usuario not in cofre["servicos"][app]:
-                    usuario = input("Digite um usuário válido")
-                # Decisão se o usuário realmente quer apagar a senha
-                escolha = input("Digite se você realmente quer apagar a senha (s/n): ").lower()
-                if escolha == "s":
-                    del cofre["servicos"][app][usuario]
-                    print("Usuário e senha deletados com sucesso.\n")
+                usuario = input(f"Usuário ou e-mail de acesso do {servico}: ")
+                print()
+                senha = input(f"Senha de acesso do {servico}: ")
+                print()
+
+                if not usuario or not senha:
+                    print("[ERRO] O usuário e a senha não podem ficar vazios!\n")
                 else:
-                    print("Senha e usuário não foram deletados\n")
-                escrever_json(CAMINHO_DADOS_JSON, cofre)
-                hmacResultado = calcular_hmac(CAMINHO_DADOS_JSON, senhaMestra.encode("utf-8"))
-                salvar_hmac(CAMINHO_HMAC_TXT,hmacResultado)
-        case "4":
-            # Alterar senha:
-            pass
-            cofre = ler_json(CAMINHO_DADOS_JSON)
-            if not cofre["servicos"]:
-                print("Nenhuma senha cadastrada no momento.")
+                    # Precisamos implementar as funções de criptografia dos dados
+                    dados["servicos"][servico] = {
+                        "usuario": usuario,
+                        "senha": senha
+                    }
+                    escrever_json(CAMINHO_DADOS_JSON, dados)
+                    
+                    hmacDados = calcular_hmac(CAMINHO_DADOS_JSON, chaveHMAC)
+                    salvar_hmac(CAMINHO_HMAC_TXT, hmacDados)
+
+                    print("Serviço cadastrado com sucesso!\n")
+            
+            print("=" * largura)
+            aguardar_enter()
+       
+        case "2":
+            # Listar serviços:
+            print("=" * largura)
+            print("LISTAR SENHAS".center(largura))
+            print("=" * largura)
+            print()
+            
+            if not dados["servicos"]:
+                print("[ERRO] Nenhuma senha foi cadastrada.\n")
             else:
-                app = input("Digite de qual app pertence a senha: ").lower()
-                while app not in cofre["servicos"]:
-                    app = input("Digite um app válido: ").lower()
-                usuario = input("Digite qual usuário você quer trocar: ")
-                while usuario not in cofre["servicos"]:
-                    usuario = input("Digite um usuario válido: ")
-                novoUsuario = input("Digite o novo nome de usuario: ")
-                while novoUsuario == usuario:
-                    novoUsuario = input("Digite um novo usuário diferente do anterior: ")
-                senhaNova = input("Digite a nova senha: ")
-                while senhaNova == cofre["servico"][app][usuario]:
-                    senhaNova = input("Digite uma senha diferente da anterior: ")
-                del cofre["servicos"][app][usuario]
-                cofre["servicos"][app][novoUsuario] = senhaNova
-            escrever_json(CAMINHO_DADOS_JSON, cofre)
-            hmacResultado = calcular_hmac(CAMINHO_DADOS_JSON, senhaMestra.encode("utf-8"))
-            salvar_hmac(CAMINHO_HMAC_TXT, hmacResultado)
-            print("Senha alterada com sucesso.\n")
+                for indice, (appNome, appDados) in enumerate(sorted(dados["servicos"].items()), start=1):
+                    print(f"[ {indice} ] {appNome.title()}")
+                    print("-" * 45)
+                    print(f"      Usuário : {appDados['usuario']}")
+                    print(f"      Senha   : {appDados['senha']}")
+                    print()
+            
+            print("=" * largura)
+            aguardar_enter()
+        
+        case "3":
+            # Excluir serviço:
+            print("=" * largura)
+            print("EXCLUIR SENHA".center(largura))
+            print("=" * largura)
+            print()
+            
+            if not dados["servicos"]:
+                print("[ERRO] Nenhuma senha foi cadastrada.\n")
+            else:
+                servico = input("Digite o serviço que deseja remover: ").lower().strip()
+                print()
+                
+                if servico not in dados["servicos"]:
+                    print("[ERRO] Não foi encontrado nenhum serviço com esse nome!\n")
+                else:
+                    escolha = input(f"Você realmente deseja remover {servico} (S/N)? ").lower().strip()
+                    print()
+                
+                    while escolha not in ["s", "n"]:
+                        escolha = input("[ERRO] Digite uma ação válida (S/N): ").lower().strip()
+                        print()
+
+                    if escolha == "s":
+                        del dados["servicos"][servico]
+                        escrever_json(CAMINHO_DADOS_JSON, dados)
+                                        
+                        hmacDados = calcular_hmac(CAMINHO_DADOS_JSON, chaveHMAC)
+                        salvar_hmac(CAMINHO_HMAC_TXT, hmacDados)
+                        
+                        print(f"Usuário e senha de {servico} deletados com sucesso!\n")
+                    else:
+                        print("Remoção cancelada!\n")
+
+            print("=" * largura)
+            aguardar_enter()
+
+        case "4":
+            # Alterar Serviço
+            print("=" * largura)
+            print("ALTERAR SENHA".center(largura))
+            print("=" * largura)
+            print()
+            
+            if not dados["servicos"]:
+                print("[ERRO] Nenhuma senha foi cadastrada!\n")
+            else:
+                servico = input("Digite o serviço que será alterado: ").lower().strip()
+                print()
+                
+                if servico not in dados["servicos"]:
+                    print("[ERRO] Não foi encontrado nenhum serviço com esse nome!\n")
+                else:
+                    usuario = input(f"Novo usuário ou email de acesso do {servico}: ")
+                    print()
+                    senha = input(f"Nova senha de acesso do {servico}: ")
+                    print()
+
+                    if not usuario or not senha:
+                        print("[ERRO] O usuário e a senha não podem ficar vazios!\n")
+                    else:
+                        # Precisamos implementar as funções de criptografia dos dados
+                        dados["servicos"][servico] = {
+                            "usuario": usuario,
+                            "senha": senha
+                        }
+                        escrever_json(CAMINHO_DADOS_JSON, dados)
+                        
+                        hmacDados = calcular_hmac(CAMINHO_DADOS_JSON, chaveHMAC)
+                        salvar_hmac(CAMINHO_HMAC_TXT, hmacDados)
+        
+                        print("Serviço alterado com sucesso!\n")
+
+            print("=" * largura)
+            aguardar_enter()
+
         case "5":
             # Parar execução do programa: 
-            print("Programa encerrado.")
+            print("\nENCERRANDO O PROGRAMA...")
+            time.sleep(2)
             break
-
-    
-        
-
-    
-
-
-""" ESSE É O CÓDIGO BASE, SERÁ USADO COMO INFLUENCIA PARA A CONSTRUÇÃO DO GERENCIADOR """
-
-# senhaM = "12345"
-# tentativas = 0
-# def limpar_buffer_teclado():
-#     """Limpa a fila de teclas digitadas, funcionando em Windows, Linux e Mac."""
-#     import os
-
-#     if os.name == 'nt':  # Se for Windows
-#         import msvcrt
-#         while msvcrt.kbhit(): # comandos para limpar os dados de entrada do terminal
-#             msvcrt.getch()  
-#     else:  # Se for Linux ou Mac (Unix)
-#         import termios
-#         termios.tcflush(sys.stdin, termios.TCIFLUSH) # comando para limpar os dados de entrada do terminal
-
-# print("======= Gerenciador de Senhas ========")
-# senhaMestra = input("Digite sua senha mestra: ")
-# tentativas += 1
-
-# while senhaMestra != senhaM:
-
-#     if tentativas % 5 == 0:
-#         print()
-#         print(f"ACESSO BLOQUEADO POR {tentativas*6} SEGUNDOS!")
-#         for i in range(tentativas*6-1, -1, -1):
-#             time.sleep(1)
-#             if i == 0:
-#                 print(f"\rRestam {i} segundos...      ")  # Não retirem esses espaços, faz parte do print
-#                 print()
-#             else:
-#                 print(f"\rRestam {i} segundos...      ", end="", flush=True) # Aqui também não retirem os espaços
-#     else: 
-#         print("ACESSO NEGADO!")
-#         print()
-
-#     limpar_buffer_teclado()
-
-#     senhaMestra = input("Digite a senha correta: ")
-#     tentativas += 1
-# print("\nACESSO LIBERADO!\n")
-
-# while True:
-#     print("="*30)
-#     print("      PAINEL DE AÇÕES")
-#     print("="*30)
-#     print(" 1 - Cadastrar nova senha")
-#     print(" 2 - Listar cofre")
-#     print(" 3 - Excluir senha")
-#     print(" 4 - Alterar senha")
-#     print(" 5 - Sair")
-#     print("="*30)
-#     # Estrutura que impede a entrada de uma ação inválida ou de formato errado
-#     while True:
-#         try:
-#             ação = int(input("Digite qual ação deseja (1-5): "))
-#             while ação > 5 or ação < 1:
-#                 ação = int(input("Digite uma ação válida (1-5): "))
-#             break
-#         except ValueError:
-#             print("Digite um número no formato correto (1-5): ")
-#     # Estrutura de decisão match, equivalente ao switch em Java
-#     match ação:
-#         case 1:
-#             app = input("Diga qual aplicativo pertence a senha: ").lower() # Função lower() : transforma todos os caracteres de uma String em minúsculo
-#             usuario = input("Digite qual o nome do usuario: ") 
-#             senha = input(f"Digite sua senha do {app}: ")
-#             with open("Dados.json", "r", encoding="utf-8") as arquivo:
-#                 cofre = json.load(arquivo)
-#             if app not in cofre:
-#                 cofre[app] = {}
-#                 cofre[app][usuario] = senha
-#             else:
-#                 cofre[app][usuario] = senha
-#             with open("Dados.json", "w", encoding="utf-8") as arquivo:
-#                 json.dump(cofre, arquivo, indent=4, ensure_ascii= False)
-#             print("Senha cadatrada com sucesso")
-#         case 2:
-#             with open("Dados.json", "r", encoding="utf-8") as arquivo:
-#                 cofre = json.load(arquivo)
-#             if not cofre:
-#                 print("Nenhuma senha cadastrada.\n")
-#             else:
-#                 with open("Dados.json", "r", encoding="utf-8") as arquivo:
-#                     cofre = json.load(arquivo)
-#                 for app, usuarios in cofre.items():
-#                     print(f"Senhas {app} :")
-#                     for usuario, Senhas in usuarios.items():
-#                         print(f"Usuario : {usuario}")
-#                         print(f"Senha : {Senhas}\n")
-#         case 3:
-#             # Validação se dicionário Senhas não está Vazio
-#             with open("Dados.json", "r", encoding="utf-8") as arquivo:
-#                 cofre = json.load(arquivo)
-#             if not cofre:
-#                 print("Nenhuma senha cadastrada então não há cofre para excluir\n")
-#             else:
-#                 app = input("Digite de qual aplicativo você deseja deletar sua senha: ").lower()
-#                 while app not in cofre:
-#                     app = input("Digite um aplicativo presente : ").lower()
-#                 usuario = input("Digite o nome do usuário: ")
-#                 while usuario not in cofre[app]:
-#                     usuario = input(f"Digite um usuario presente em {app} : ")
-#                 escolha = input("Você realmente quer apagar a senha: s/n").lower()
-#                 if escolha != "s":
-#                     print("Senha não foi deletada.\n")
-#                 else:
-#                     del cofre[app][usuario]
-#                     print("Senha excluída com sucesso.")
-#             with open("Dados.json", "w", encoding="utf-8") as arquivo:
-#                 json.dump(cofre, arquivo, indent=4, ensure_ascii=False)
-#         case 4:
-#             # Validação se o dicionário Senhas não está Vazio
-#             with open("Dados.json", "r", encoding="utf-8") as arquivo:
-#                 cofre = json.load(arquivo)
-#             if not cofre:
-#                 print("Nenhuma senha está cadastrada no momento.")
-#             else:
-#                 app = input("Digite de qual aplicativo é a senha que deseja alterar: ").lower()
-#                 while app not in cofre:
-#                     app = input("Digite um aplicativo válido: ").lower()
-#                 usuario = input("Digite o usuário: ")
-#                 while usuario not in cofre[app]:
-#                     usuario = input("Digite um usuário válido: ")
-#                 senhaNova = input(f"Digite a nova senha : ")
-#                 while senhaNova == cofre[app][usuario]:
-#                     senhaNova = input("Digite a nova senha diferente da anterior : ")
-#                 cofre[app][usuario] = senhaNova
-#                 print("Senha alterada com sucesso\n")    
-#             with open("Dados.json", "w", encoding="utf-8") as arquivo:
-#                 json.dump(cofre, arquivo, indent=4, ensure_ascii=False)        
-#         case 5:
-#             print("Programa encerrado.")
-#             break
