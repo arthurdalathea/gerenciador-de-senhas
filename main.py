@@ -59,24 +59,13 @@ def ler_json(caminhoArquivo: str):
         sys.exit()
         
 def escrever_json(caminhoArquivo: str, objeto: dict):
-    # Se o arquivo não existir
     if not os.path.exists(caminhoArquivo):
         mensagem_arquivo_removido()
 
-    # Usamos um arquivo temporário para salvar os dados. Caso de um erro ao salvar os dados, o arquivo principal não é afetado
-    caminhoTemporario = caminhoArquivo + ".tmp"
-
-    try:
-        with open(caminhoTemporario, "w", encoding="utf-8") as arq:
-            json.dump(objeto, arq, indent=4, ensure_ascii=False)
-
-        os.replace(caminhoTemporario, caminhoArquivo)
-
-    except (OSError, TypeError, ValueError) as erro:
-        print(f"[ERRO] Não foi possível salvar os dados: {erro}")
-
-        if os.path.exists(caminhoTemporario):
-            os.remove(caminhoTemporario)
+    # Abre o arquivo com permissão de escrita
+    with open(caminhoArquivo, "w", encoding="utf-8") as arq:
+        # Escreve o objeto no json
+        json.dump(objeto, arq, indent=4, ensure_ascii=False)
 
 def ler_txt(caminhoArquivo: str):
     try:
