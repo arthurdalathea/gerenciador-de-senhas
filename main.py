@@ -6,6 +6,7 @@ import json
 import hmac
 import sys
 import subprocess
+import getpass
 
 """ VARIÁVEIS CONSTANTES """
 CAMINHO_DADOS_JSON = os.path.join("cofre", "dados.json")
@@ -25,7 +26,7 @@ def aviso_tela():
     limpar_terminal()
 
 def mensagem_arquivo_removido():
-    print("[ERRO] Um arquivo obrigatório do cofre foi removido!\n")
+    print("[ERRO] Um ou mais arquivos do cofre foram removidos!\n")
     print("Por motivos de segurança, o acesso ao cofre será bloqueado!\n")
     time.sleep(2)
     print("Encerrando o programa...")
@@ -130,6 +131,27 @@ def aguardar_enter():
                     break
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, configuracao_anterior)
+
+def validar_senha(senha: str): 
+    erros = []
+
+    # Verificando se a senha contém no mínimo 10 caracteres
+    if len(senha) < 10:
+        erros.append("Sua senha precisa conter 10 caracteres no mínimo.")
+    # Verificando se a senha possui pelo menos uma letra maiuscula
+    temMaiuscula = any(char.isupper() for char in senha)
+    if not temMaiuscula:
+        erros.append("Sua senha precisa conter ao menos uma letra maiúscula.")
+    # Verificando se a senha possui pelo menos uma letra minuscula
+    temMinuscula = any(char.islower() for char in senha)
+    if not temMinuscula:
+        erros.append("Sua senha precisa conter ao menos uma letra minúscula.")
+    # Verificando se a senha possui pelo menos um número
+    temNumero = any(char.isdigit() for char in senha)
+    if not temNumero:
+        erros.append("Sua senha precisa conter ao menos um número.")
+
+    return erros
 
 # Essas funções embaixo servem para validar os dados dos arquivos antes da execução do programa
 def validar_dados_json(dados: dict):
@@ -378,9 +400,28 @@ else:
 
     aviso_tela()
 
-    senhaMestra = input("Defina a sua Senha Mestra (Essa senha você utilizará para entrar no\n" \
-    "gerenciador, ESCOLHA COM CUIDADO): ").encode("utf-8")
+    senhaMestra = input(
+    "Defina sua Senha Mestra. Ela será utilizada para ACESSAR o gerenciador.\n"
+    "\nREQUISITOS DA SENHA:\n"
+    "- No mínimo 10 caracteres;\n"
+    "- Pelo menos uma letra maiúscula;\n"
+    "- Pelo menos uma letra minúscula;\n"
+    "- Pelo menos um número.\n"
+    "\nSenha Mestra: ")
     print()
+    
+    erros = validar_senha(senhaMestra)
+
+    while erros:
+        for erro in erros:
+            print(f"- {erro}")
+        print()
+
+        senhaMestra = input("Digite uma nova Senha Mestra: ")
+        print()
+        erros = validar_senha(senhaMestra)
+
+    senhaMestra = senhaMestra.encode("utf-8")
     
     # Geração dos 2 salts utilizando a biblioteca secrets
     saltCofre = secrets.token_bytes(16)
@@ -519,7 +560,7 @@ while True:
             print()
             
             if not dados["servicos"]:
-                print("[ERRO] Nenhuma senha foi cadastrada.\n")
+                print("[ERRO] Nenhuma senha foi cadastrada!\n")
             else:
                 for indice, (appNome, appDados) in enumerate(sorted(dados["servicos"].items()), start=1):
                     print(f"[ {indice} ] {appNome.title()}")
@@ -539,7 +580,7 @@ while True:
             print()
             
             if not dados["servicos"]:
-                print("[ERRO] Nenhuma senha foi cadastrada.\n")
+                print("[ERRO] Nenhuma senha foi cadastrada!\n")
             else:
                 servico = input("Digite o serviço que deseja remover: ").lower().strip()
                 print()
