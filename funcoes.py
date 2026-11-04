@@ -5,9 +5,23 @@ import json
 import hmac
 import sys
 import subprocess
+from Crypto.Cipher import AES # Para usar essas bibliotecas é preciso fazer pip install Cryptodome
+from Crypto.Random import get_random_bytes
+from Crypto.Util.Padding import pad, unpad
+
 
 """ FUNÇÕES DO PROGRAMA """
-
+def criptografia(mensagem: str, chaveAES: bytes):
+    mensagem = mensagem.encode("utf-8")
+    mensagem = pad(mensagem, AES.block_size)
+    cipher = AES.new(chaveAES, AES.MODE_CBC, )
+    textoCriptografado = cipher.encrypt(mensagem)
+    return textoCriptografado, cipher.iv
+def descripto(textoCifrado, chaveAES: bytes, Iv):
+    cipher = AES.new(chaveAES, AES.MODE_CBC, Iv )
+    textoClaro = cipher.decrypt(textoCifrado)
+    textoClaro = unpad(textoClaro, AES.block_size)
+    return textoClaro.decode("utf-8")
 def aviso_tela():
     limpar_buffer_teclado()
     print("=" * 70)
