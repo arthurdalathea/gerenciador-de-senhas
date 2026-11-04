@@ -5,6 +5,7 @@ import os
 import hmac
 import sys
 from funcoes import *
+from Crypto.Random import get_random_bytes
 
 """ VARIÁVEIS CONSTANTES """
 CAMINHO_DADOS_JSON = os.path.join("cofre", "dados.json")
@@ -159,6 +160,7 @@ else:
     chaveCofre = hashlib.scrypt(password=senhaMestra, salt=saltCofre, n=16384, r=8, p=1,dklen=32)
     chaveHMAC = hashlib.scrypt(password=senhaMestra, salt=saltHMAC, n=16384, r=8, p=1,dklen=32)
     hashAutenticacao = hashlib.sha256(chaveCofre).hexdigest()
+    chaveAES = get_random_bytes(32)
 
     # Criando os arquivos da pasta cofre
     arquivos = ["dados.json", "timer.json", "hmac.txt"]
@@ -189,7 +191,8 @@ else:
     seguranca = {
         "saltCofre": saltCofre.hex(),
         "saltHMAC": saltHMAC.hex(),
-        "hashAutenticacao": hashAutenticacao
+        "hashAutenticacao": hashAutenticacao,
+        "chaveAES" : chaveAES
     }
 
     dados = ler_json(CAMINHO_DADOS_JSON)
@@ -261,17 +264,17 @@ while True:
                 print()
                 senha = input(f"Senha de acesso do {servico}: ")
                 print()
-
                 if not usuario or not senha:
                     print("[ERRO] O usuário e a senha não podem ficar vazios!\n")
                 else:
                     # Precisamos implementar as funções de criptografia dos dados
-                    dados["servicos"][servico] = {
-                        "usuario": usuario,
-                        "senha": senha
+                    senhaCriptografada, iv = criptografia(senha, dados["segurança"]["chaveAES"])
+                    dados["servicos"][servico][usuario] = {
+                        "Usuario": usuario,
+                         "senha": senhaCriptografada,
+                         "vetorInicialização": iv
                     }
                     escrever_json(CAMINHO_DADOS_JSON, dados)
-                    
                     hmacDados = calcular_hmac(CAMINHO_DADOS_JSON, chaveHMAC)
                     salvar_hmac(CAMINHO_HMAC_TXT, hmacDados)
 
@@ -290,13 +293,12 @@ while True:
             if not dados["servicos"]:
                 print("[ERRO] Nenhuma senha foi cadastrada!\n")
             else:
-                for indice, (appNome, appDados) in enumerate(sorted(dados["servicos"].items()), start=1):
-                    print(f"[ {indice} ] {appNome.title()}")
-                    print("-" * 45)
-                    print(f"      Usuário : {appDados['usuario']}")
-                    print(f"      Senha   : {appDados['senha']}")
-                    print()
-            
+                for servico in dados["serviços"].items():
+                    print(f"{servico.title()}")
+                    for usuario in dados["serviços"][servico].items():
+                        print(f"Usuario : {usuario}")
+                        print(f"Senha : {descripto(dados["serviços"][servico][usuario]["senha"]), dados["serviços"][servico][usuario]["vetorInicialização"]})
+
             print("=" * largura)
             aguardar_enter()
         
@@ -325,8 +327,7 @@ while True:
 
                     if escolha == "s":
                         del dados["servicos"][servico]
-                        escrever_json(CAMINHO_DADOS_JSON, dados)
-                                        
+                        escrever_json(CAMINHO_DADOS_JSON, dados)         
                         hmacDados = calcular_hmac(CAMINHO_DADOS_JSON, chaveHMAC)
                         salvar_hmac(CAMINHO_HMAC_TXT, hmacDados)
                         
@@ -362,9 +363,11 @@ while True:
                         print("[ERRO] O usuário e a senha não podem ficar vazios!\n")
                     else:
                         # Precisamos implementar as funções de criptografia dos dados
-                        dados["servicos"][servico] = {
+                        senhaCriptografada, iv = criptografia(senha, dados["segurança"]["chaveAES"])
+                        dados["servicos"][servico][usuario] = {
                             "usuario": usuario,
-                            "senha": senha
+                            "senha": senhaCriptografada,
+                            "vetorInicialização": iv
                         }
                         escrever_json(CAMINHO_DADOS_JSON, dados)
                         
