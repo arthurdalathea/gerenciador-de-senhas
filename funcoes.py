@@ -5,7 +5,9 @@ import json
 import hmac
 import sys
 import subprocess
-from Crypto.Cipher import AES # Para usar essas bibliotecas é preciso fazer pip install Cryptodome
+
+# Para usar essas biblioteca é preciso fazer pip install pycryptodome
+from Crypto.Cipher import AES 
 from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import pad, unpad
 
@@ -14,7 +16,7 @@ from Crypto.Util.Padding import pad, unpad
 def criptografia(mensagem: str, chaveAES: bytes):
     mensagem = mensagem.encode("utf-8")
     mensagem = pad(mensagem, AES.block_size)
-    cipher = AES.new(chaveAES, AES.MODE_CBC, )
+    cipher = AES.new(chaveAES, AES.MODE_CBC)
     textoCriptografado = cipher.encrypt(mensagem)
     return textoCriptografado, cipher.iv
 def descripto(textoCifrado, chaveAES: bytes, Iv):
@@ -177,7 +179,6 @@ def validar_dados_json(dados: dict):
 
     if not isinstance(dados.get("servicos"), dict):
         erros.append("A estrutura dos serviços está inválida.")
-
     # Verificando os campos internos de "seguranca"
     if isinstance(dados.get("seguranca"), dict):
         seguranca = dados["seguranca"]
@@ -203,7 +204,6 @@ def validar_dados_json(dados: dict):
 
             except ValueError:
                 erros.append(f"O campo '{campo}' possui um formato inválido.")
-    
     # Verificando os campos internos de "servicos"
     if isinstance(dados.get("servicos"), dict):
         servicos = dados["servicos"]
@@ -219,6 +219,7 @@ def validar_dados_json(dados: dict):
 
                 if not isinstance(valor, str):
                     erros.append(f"O campo '{campo}' do serviço '{aplicativo}' está ausente ou inválido.")
+            
 
     return erros
 
