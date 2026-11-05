@@ -216,7 +216,7 @@ def validar_dados_json(dados: dict):
                 erros.append(f"As informações do serviço '{aplicativo}' estão inválidas.")
                 continue
 
-            for campo in ("usuario", "senha"):
+            for campo in ("usuario", "senha", "ivUsuario", "ivSenha"):
                 valor = informacoes.get(campo)
 
                 if not isinstance(valor, str):
