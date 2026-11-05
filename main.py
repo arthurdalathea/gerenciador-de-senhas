@@ -5,7 +5,6 @@ import os
 import hmac
 import sys
 from funcoes import *
-from Crypto.Random import get_random_bytes
 
 """ VARIÁVEIS CONSTANTES """
 CAMINHO_DADOS_JSON = os.path.join("cofre", "dados.json")
@@ -160,7 +159,7 @@ else:
     chaveCofre = hashlib.scrypt(password=senhaMestra, salt=saltCofre, n=16384, r=8, p=1,dklen=32)
     chaveHMAC = hashlib.scrypt(password=senhaMestra, salt=saltHMAC, n=16384, r=8, p=1,dklen=32)
     hashAutenticacao = hashlib.sha256(chaveCofre).hexdigest()
-    chaveAES = get_random_bytes(32)
+
 
     # Criando os arquivos da pasta cofre
     arquivos = ["dados.json", "timer.json", "hmac.txt"]
@@ -192,7 +191,6 @@ else:
         "saltCofre": saltCofre.hex(),
         "saltHMAC": saltHMAC.hex(),
         "hashAutenticacao": hashAutenticacao,
-        "chaveAES" : chaveAES.hex()
     }
 
     dados = ler_json(CAMINHO_DADOS_JSON)
@@ -268,12 +266,15 @@ while True:
                     print("[ERRO] O usuário e a senha não podem ficar vazios!\n")
                 else:
                     # Precisamos implementar as funções de criptografia dos dados
-                    senhaCriptografada, iv = criptografia(senha, bytes.fromhex(dados["seguranca"]["chaveCofre"]))
-                    dados["servicos"][servico]= {}
-                    dados["servicos"][servico][usuario] = {
-                        "Usuario": usuario,
+
+                    senhaCriptografada, ivSenha = criptografia(senha, chaveCofre)
+                    usuarioCriptografado, ivUsuario = criptografia(usuario, chaveCofre)
+
+                    dados["servicos"][servico] = {
+                        "usuario": usuarioCriptografado.hex(),
+                        "ivUsuario": ivUsuario.hex(),
                         "senha": senhaCriptografada.hex(),
-                        "vetorInicialização": iv.hex()
+                        "ivSenha": ivSenha.hex()
                     }
                     escrever_json(CAMINHO_DADOS_JSON, dados)
                     hmacDados = calcular_hmac(CAMINHO_DADOS_JSON, chaveHMAC)
@@ -294,14 +295,12 @@ while True:
             if not dados["servicos"]:
                 print("[ERRO] Nenhuma senha foi cadastrada!\n")
             else:
-                for servico in dados["servicos"].items():
-                    print(f"{servico.title()}")
-                    for usuario in dados["servicos"][servico].items():
-                        print(f"Usuario : {usuario}")
-                        senhaCripto = bytes.fromhex(dados["servicos"][servico][usuario]["senha"])
-                        chaveAES = bytes.fromhex(dados["seguranca"]["chaveCofre"])
-                        IV = bytes.fromhex(dados["servicos"][servico][usuario]["vetorInicializacao"])
-                        print(f"Senha:  {descripto(senhaCripto, chaveAES, IV)}")
+                for indice, (appNome, appDados) in enumerate(sorted(dados["servicos"].items()), start=1):
+                    print(f"[ {indice} ] {appNome.title()}")
+                    print("-" * 45)
+                    print(f"      Usuário : {descripto(bytes.fromhex(appDados['usuario']), chaveCofre, bytes.fromhex(appDados['ivUsuario']))}")
+                    print(f"      Senha   : {descripto(bytes.fromhex(appDados['senha']), chaveCofre, bytes.fromhex(appDados['ivSenha']))}")
+                    print()
             print("=" * largura)
             aguardar_enter()
         
