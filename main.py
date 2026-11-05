@@ -30,7 +30,7 @@ if pastaExiste:
 
         timer = ler_json(CAMINHO_TIMER_JSON)
         dados = ler_json(CAMINHO_DADOS_JSON)
-        hmacTxt = ler_txt(CAMINHO_HMAC_TXT)
+        hmacTxt = ler_txt(CAMINHO_HMAC_TXT).strip()
 
         validar_arquivos(dados, timer, hmacTxt)
 
@@ -212,7 +212,7 @@ else:
     # Salvando o HMAC no hmac.txt
     salvar_hmac(caminhoArquivo=CAMINHO_HMAC_TXT, hmac=hmacDados)
 
-    hmacTxt = ler_txt(CAMINHO_HMAC_TXT)
+    hmacTxt = ler_txt(CAMINHO_HMAC_TXT).strip()
 
 """ MENU PRINCIPAL """
 print("Carregando Menu Principal...")
@@ -365,11 +365,13 @@ while True:
                         print("[ERRO] O usuário e a senha não podem ficar vazios!\n")
                     else:
                         # Precisamos implementar as funções de criptografia dos dados
-                        senhaCriptografada, iv = criptografia(senha, dados["segurança"]["chaveCofre"])
-                        dados["servicos"][servico][usuario] = {
-                            "usuario": usuario,
+                        senhaCriptografada, ivSenha = criptografia(senha,chaveCofre)
+                        usuarioCriptografado, ivUsuario = criptografia(usuario, chaveCofre) 
+                        dados["servicos"][servico] = {
+                            "usuario": usuarioCriptografado.hex(),
+                            "ivUsuario" : ivUsuario.hex(),
                             "senha": senhaCriptografada.hex(),
-                            "vetorInicialização": iv.hex()
+                            "ivSenha": ivSenha.hex()
                         }
                         escrever_json(CAMINHO_DADOS_JSON, dados)
                         
