@@ -192,7 +192,7 @@ else:
         "saltCofre": saltCofre.hex(),
         "saltHMAC": saltHMAC.hex(),
         "hashAutenticacao": hashAutenticacao,
-        "chaveAES" : chaveAES
+        "chaveAES" : chaveAES.hex()
     }
 
     dados = ler_json(CAMINHO_DADOS_JSON)
@@ -268,11 +268,12 @@ while True:
                     print("[ERRO] O usuário e a senha não podem ficar vazios!\n")
                 else:
                     # Precisamos implementar as funções de criptografia dos dados
-                    senhaCriptografada, iv = criptografia(senha, dados["segurança"]["chaveAES"])
+                    senhaCriptografada, iv = criptografia(senha, bytes.fromhex(dados["seguranca"]["chaveCofre"]))
+                    dados["servicos"][servico]= {}
                     dados["servicos"][servico][usuario] = {
                         "Usuario": usuario,
-                         "senha": senhaCriptografada,
-                         "vetorInicialização": iv
+                        "senha": senhaCriptografada.hex(),
+                        "vetorInicialização": iv.hex()
                     }
                     escrever_json(CAMINHO_DADOS_JSON, dados)
                     hmacDados = calcular_hmac(CAMINHO_DADOS_JSON, chaveHMAC)
@@ -293,12 +294,14 @@ while True:
             if not dados["servicos"]:
                 print("[ERRO] Nenhuma senha foi cadastrada!\n")
             else:
-                for servico in dados["serviços"].items():
+                for servico in dados["servicos"].items():
                     print(f"{servico.title()}")
-                    for usuario in dados["serviços"][servico].items():
+                    for usuario in dados["servicos"][servico].items():
                         print(f"Usuario : {usuario}")
-                        print(f"Senha : {descripto(dados["serviços"][servico][usuario]["senha"]), dados["serviços"][servico][usuario]["vetorInicialização"]})
-
+                        senhaCripto = bytes.fromhex(dados["servicos"][servico][usuario]["senha"])
+                        chaveAES = bytes.fromhex(dados["seguranca"]["chaveCofre"])
+                        IV = bytes.fromhex(dados["servicos"][servico][usuario]["vetorInicializacao"])
+                        print(f"Senha:  {descripto(senhaCripto, chaveAES, IV)}")
             print("=" * largura)
             aguardar_enter()
         
@@ -363,11 +366,11 @@ while True:
                         print("[ERRO] O usuário e a senha não podem ficar vazios!\n")
                     else:
                         # Precisamos implementar as funções de criptografia dos dados
-                        senhaCriptografada, iv = criptografia(senha, dados["segurança"]["chaveAES"])
+                        senhaCriptografada, iv = criptografia(senha, dados["segurança"]["chaveCofre"])
                         dados["servicos"][servico][usuario] = {
                             "usuario": usuario,
-                            "senha": senhaCriptografada,
-                            "vetorInicialização": iv
+                            "senha": senhaCriptografada.hex(),
+                            "vetorInicialização": iv.hex()
                         }
                         escrever_json(CAMINHO_DADOS_JSON, dados)
                         
