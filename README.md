@@ -7,7 +7,11 @@ O nosso projeto apresenta um gerenciador de senhas com criptografia baseada em A
 - Cadastro e gerenciamento das informações do usuário.
 - Armazenamento local.
 - Interface interativa pelo terminal.
-Ferramentas utilizadas: 
+
+  
+**Ferramentas utilizadas:
+**
+
 - Python : Linguagem de programação utilizada no desenvolvimento do código.
 - PyCryptodome : Biblioteca externa do Python, utilizada na implementação da criptografia AES-256 no progarma.
 - AES-256 : Algoritmo de criptografia simétrico para criptografar as senhas e descriptografa-las garantindo confidencialidade.
