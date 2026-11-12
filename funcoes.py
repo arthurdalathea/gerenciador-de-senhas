@@ -30,8 +30,8 @@ def aviso_tela():
     limpar_buffer_teclado()
     print("=" * 70)
     print("⚠️  ATENÇÃO: Não altere ou delete a pasta cofre, onde suas senhas serão\n" \
-    "armazenadas. Caso qualquer modificação externa seja detectada, o cofre\n" \
-    "será bloqueado e deletado permanentemente por segurança!")
+    "armazenadas. Caso qualquer modificação externa seja detectada, o\n" \
+    "programa apresentará comportamentos inesperados.")
     print("=" * 70)
     print()
     aguardar_enter()
