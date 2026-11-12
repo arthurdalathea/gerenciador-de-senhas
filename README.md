@@ -1,6 +1,5 @@
-      
-# 🔒 Secure Password Manager
-### Gerenciador de Senhas com AES-256       
+<h1 align="center">🔐 Gerenciador de Senhas</h1>
+<h3 align="center">Proteção e confidencialidade através da criptografia AES-256</h3>    
 
 **Sobre o projeto**
 
