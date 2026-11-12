@@ -1,5 +1,6 @@
       
-                              # Gerenciador de Senhas          
+# 🔒 Secure Password Manager
+### Gerenciador de Senhas com AES-256       
 
 **Sobre o projeto**
 
