@@ -1,4 +1,4 @@
-**Sobre o projeto
+**Sobre o projeto**
 
 O nosso projeto apresenta um gerenciador de senhas com criptografia baseada em AES-256. 
 
