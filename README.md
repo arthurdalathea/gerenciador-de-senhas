@@ -78,4 +78,4 @@ O artigo aborda os fundamentos da criptografia, os impactos dos algoritmos quân
 
 A pesquisa serviu como fundamentação teórica para o desenvolvimento prático do gerenciador de senhas.
 
-**[📄 Acessar o artigo completo (PDF)](documentacao/artigo.pdf)**
+**[📄 Acessar o artigo completo (PDF)](<documentacao/O Impacto dos Computadores Quânticos na Segurança da Internet.pdf>)**
